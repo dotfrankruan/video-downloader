@@ -33,6 +33,7 @@ class AppStore {
   tasks = $state<Task[]>([]);
   tab = $state<"new" | "queue" | "settings">("new");
   settingsSavedFlash = $state(false);
+  settingsError = $state("");
 
   get activeCount(): number {
     return this.tasks.filter((t) => t.phase === "downloading" || t.phase === "processing").length;
@@ -58,7 +59,13 @@ class AppStore {
   }
 
   async saveSettings(): Promise<void> {
-    await api.saveSettings($state.snapshot(this.settings) as AppSettings);
+    this.settingsError = "";
+    try {
+      await api.saveSettings($state.snapshot(this.settings) as AppSettings);
+    } catch (e) {
+      this.settingsError = String(e);
+      return;
+    }
     applyLanguageSetting(this.settings.language);
     await this.refreshTools();
     this.settingsSavedFlash = true;

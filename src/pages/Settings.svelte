@@ -3,7 +3,7 @@
   import { open as openDialog } from "@tauri-apps/plugin-dialog";
   import { api, onToolDownloadEvent, type ToolInfo } from "../lib/api";
   import { store } from "../lib/stores.svelte";
-  import { t, fmtBytes } from "../lib/i18n/i18n.svelte";
+  import { t, applyLanguageSetting } from "../lib/i18n/i18n.svelte";
 
   let toolDlPercent = $state<number | null>(null);
   let toolDlDone = $state("");
@@ -62,7 +62,11 @@
 <div>
   <div class="form-grid">
     <label>{t("settings.language")}</label>
-    <select bind:value={store.settings.language} style="width: 220px">
+    <select
+      bind:value={store.settings.language}
+      style="width: 220px"
+      onchange={() => applyLanguageSetting(store.settings.language)}
+    >
       <option value="system">{t("settings.language.system")}</option>
       <option value="en">English</option>
       <option value="zh-CN">简体中文</option>
@@ -208,8 +212,8 @@
     {#if store.settingsSavedFlash}
       <span style="color: var(--green)">{t("settings.saved")}</span>
     {/if}
-    {#if toolDlPercent !== null}
-      <span class="muted">{fmtBytes(0)}</span>
+    {#if store.settingsError}
+      <span style="color: var(--red)">{store.settingsError}</span>
     {/if}
   </div>
 </div>
