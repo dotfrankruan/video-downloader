@@ -269,15 +269,15 @@ pub fn ytdlp_asset_name() -> anyhow::Result<&'static str> {
     }
     #[cfg(all(target_os = "windows", target_arch = "aarch64"))]
     {
-        Ok("yt-dlp_win_arm64.exe")
+        Ok("yt-dlp_arm64.exe")
     }
     #[cfg(all(target_os = "linux", target_arch = "x86_64"))]
     {
-        Ok("yt-dlp")
+        Ok("yt-dlp_linux")
     }
     #[cfg(all(target_os = "linux", target_arch = "aarch64"))]
     {
-        Ok("yt-dlp_aarch64")
+        Ok("yt-dlp_linux_aarch64")
     }
     #[cfg(not(any(target_os = "macos", target_os = "windows", target_os = "linux")))]
     {

@@ -36,11 +36,11 @@ case "$TRIPLE" in
   x86_64-pc-windows-msvc)
     YTDLP_ASSET="yt-dlp.exe"; EXE=".exe"; FFMPEG_KIND="win64" ;;
   aarch64-pc-windows-msvc)
-    YTDLP_ASSET="yt-dlp_win_arm64.exe"; EXE=".exe"; FFMPEG_KIND="winarm64" ;;
+    YTDLP_ASSET="yt-dlp_arm64.exe"; EXE=".exe"; FFMPEG_KIND="winarm64" ;;
   x86_64-unknown-linux-gnu)
-    YTDLP_ASSET="yt-dlp"; EXE=""; FFMPEG_KIND="linux64" ;;
+    YTDLP_ASSET="yt-dlp_linux"; EXE=""; FFMPEG_KIND="linux64" ;;
   aarch64-unknown-linux-gnu)
-    YTDLP_ASSET="yt-dlp_aarch64"; EXE=""; FFMPEG_KIND="linuxarm64" ;;
+    YTDLP_ASSET="yt-dlp_linux_aarch64"; EXE=""; FFMPEG_KIND="linuxarm64" ;;
   *)
     echo "unsupported target triple: '$TRIPLE'" >&2
     exit 1

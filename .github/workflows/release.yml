@@ -77,9 +77,11 @@ jobs:
 
       - name: Build full variant (bundled tools)
         if: matrix.variant == 'full'
+        # NOTE: pass the config override as a FILE. Inline JSON loses its
+        # quotes when pnpm forwards args on Windows runners.
         run: >-
           pnpm tauri build --target "${{ matrix.target }}"
-          --config '{"bundle":{"externalBin":["binaries/yt-dlp","binaries/ffmpeg","binaries/ffprobe"]}}'
+          --config src-tauri/tauri.full.conf.json
 
       - name: Repackage macOS dmg with unsigned-app notice
         if: runner.os == 'macOS'
