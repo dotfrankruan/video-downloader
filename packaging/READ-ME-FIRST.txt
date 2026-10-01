@@ -1,0 +1,51 @@
+==============================================================
+ 请先阅读 / READ ME FIRST —— 关于未签名应用的说明
+ About this unsigned (ad-hoc signed) application
+==============================================================
+
+[中文]
+
+本应用未购买 Apple 开发者签名，仅使用 ad-hoc 签名。
+首次打开时 macOS 可能提示「无法打开，因为无法验证开发者」或
+「应用已损坏」。请使用以下任意一种方式解决：
+
+方式一（图形界面）：
+  1. 将 “Video Downloader.app” 拖入右侧「应用程序」文件夹；
+  2. 打开 系统设置 → 隐私与安全性；
+  3. 在底部找到被阻止的 “Video Downloader”，点击「仍要打开」。
+
+方式二（终端命令，移除隔离属性）：
+  xattr -dr com.apple.quarantine "/Applications/Video Downloader.app"
+
+方式三（自行重新签名，ad-hoc）：
+  codesign --force --deep --sign - "/Applications/Video Downloader.app"
+
+以上操作只需执行一次。
+
+--------------------------------------------------------------
+
+[English]
+
+This app is not signed with an Apple Developer certificate; it is
+signed ad-hoc only. On first launch macOS may say the app "cannot be
+opened because the developer cannot be verified" or is "damaged".
+Resolve it with any ONE of the following:
+
+Option 1 (GUI):
+  1. Drag "Video Downloader.app" into the Applications folder;
+  2. Open System Settings -> Privacy & Security;
+  3. Find the blocked "Video Downloader" at the bottom and click
+     "Open Anyway".
+
+Option 2 (Terminal, remove quarantine):
+  xattr -dr com.apple.quarantine "/Applications/Video Downloader.app"
+
+Option 3 (re-sign it yourself, ad-hoc):
+  codesign --force --deep --sign - "/Applications/Video Downloader.app"
+
+You only need to do this once.
+
+--------------------------------------------------------------
+Source code / 源代码:
+https://github.com/dotfrankruan/video-downloader
+License / 许可证: Apache-2.0 (bundled ffmpeg: GPLv3, see LICENSES/)
