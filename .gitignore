@@ -25,3 +25,7 @@ Thumbs.db
 # Logs
 *.log
 .bin/
+
+# Local release artifacts
+release-out/
+release-out-x64/
