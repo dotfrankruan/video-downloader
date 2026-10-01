@@ -78,12 +78,12 @@ jobs:
 
       - name: Build lite variant
         if: matrix.variant == 'lite'
-        run: pnpm tauri build -- --target "${{ matrix.target }}"
+        run: pnpm tauri build --target "${{ matrix.target }}"
 
       - name: Build full variant (bundled tools)
         if: matrix.variant == 'full'
         run: >-
-          pnpm tauri build -- --target "${{ matrix.target }}"
+          pnpm tauri build --target "${{ matrix.target }}"
           --config '{"bundle":{"externalBin":["binaries/yt-dlp","binaries/ffmpeg","binaries/ffprobe"]}}'
 
       - name: Repackage macOS dmg with unsigned-app notice

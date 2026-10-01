@@ -87,7 +87,7 @@ pnpm tauri build
 # 本机 full 构建（先下载预编译工具链，不编译 ffmpeg）
 # local full build (downloads prebuilt tools first, nothing compiled)
 scripts/fetch-tools.sh aarch64-apple-darwin   # 或你的目标 triple / or your target triple
-pnpm tauri build -- --config '{"bundle":{"externalBin":["binaries/yt-dlp","binaries/ffmpeg","binaries/ffprobe"]}}'
+pnpm tauri build --config '{"bundle":{"externalBin":["binaries/yt-dlp","binaries/ffmpeg","binaries/ffprobe"]}}'
 
 # macOS dmg（含未签名告知文件）/ dmg with the unsigned-app notice
 scripts/make-dmg.sh "src-tauri/target/release/bundle/macos/Video Downloader.app" "Video-Downloader.dmg"
