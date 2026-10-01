@@ -17,7 +17,8 @@ VOLNAME="Video Downloader"
 TMP="$(mktemp -d)"
 trap 'rm -rf "$TMP"' EXIT
 
-cp -R "$APP" "$TMP/"
+# Normalise the app name inside the dmg regardless of the source folder name.
+cp -R "$APP" "$TMP/Video Downloader.app"
 ln -s /Applications "$TMP/Applications"
 cp "$ROOT/packaging/READ-ME-FIRST.txt" "$TMP/请先阅读 READ-ME-FIRST.txt"
 
