@@ -1,3 +1,2 @@
 allowBuilds:
   esbuild: true
-storeDir: /Users/frankruan/Library/pnpm/store/v11
