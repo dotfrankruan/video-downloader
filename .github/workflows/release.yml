@@ -13,30 +13,25 @@ jobs:
   build:
     strategy:
       fail-fast: false
+      # Fully explicit combos: mixing `include` with a second axis
+      # (`variant: [lite, full]`) does NOT cross-product reliably.
       matrix:
         include:
           # ---- macOS (ad-hoc signed, both architectures) ----
-          - os: macos-14
-            target: aarch64-apple-darwin
-            arch: arm64
-          - os: macos-14
-            target: x86_64-apple-darwin
-            arch: x86_64
+          - { os: macos-14, target: aarch64-apple-darwin, arch: arm64, variant: lite }
+          - { os: macos-14, target: aarch64-apple-darwin, arch: arm64, variant: full }
+          - { os: macos-14, target: x86_64-apple-darwin, arch: x86_64, variant: lite }
+          - { os: macos-14, target: x86_64-apple-darwin, arch: x86_64, variant: full }
           # ---- Windows ----
-          - os: windows-latest
-            target: x86_64-pc-windows-msvc
-            arch: x86_64
-          - os: windows-11-arm
-            target: aarch64-pc-windows-msvc
-            arch: arm64
+          - { os: windows-latest, target: x86_64-pc-windows-msvc, arch: x86_64, variant: lite }
+          - { os: windows-latest, target: x86_64-pc-windows-msvc, arch: x86_64, variant: full }
+          - { os: windows-11-arm, target: aarch64-pc-windows-msvc, arch: arm64, variant: lite }
+          - { os: windows-11-arm, target: aarch64-pc-windows-msvc, arch: arm64, variant: full }
           # ---- Linux ----
-          - os: ubuntu-22.04
-            target: x86_64-unknown-linux-gnu
-            arch: x86_64
-          - os: ubuntu-22.04-arm
-            target: aarch64-unknown-linux-gnu
-            arch: arm64
-        variant: [lite, full]
+          - { os: ubuntu-22.04, target: x86_64-unknown-linux-gnu, arch: x86_64, variant: lite }
+          - { os: ubuntu-22.04, target: x86_64-unknown-linux-gnu, arch: x86_64, variant: full }
+          - { os: ubuntu-22.04-arm, target: aarch64-unknown-linux-gnu, arch: arm64, variant: lite }
+          - { os: ubuntu-22.04-arm, target: aarch64-unknown-linux-gnu, arch: arm64, variant: full }
 
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.os }} / ${{ matrix.target }} / ${{ matrix.variant }}
@@ -65,7 +60,7 @@ jobs:
         if: runner.os == 'Linux'
         run: |
           sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev \
+          sudo apt-get install -y libwebkit2gtk-4.1-dev \
             librsvg2-dev patchelf build-essential curl wget file libxdo-dev \
             libssl-dev libayatana-appindicator3-dev
 
@@ -105,7 +100,7 @@ jobs:
           mkdir -p dist-release
           B="src-tauri/target/${{ matrix.target }}/release/bundle"
           find "$B/nsis" -name '*.exe' -exec cp {} "dist-release/Video-Downloader_${GITHUB_REF_NAME}_${{ matrix.variant }}_windows_${{ matrix.arch }}-setup.exe" \;
-          cp "src-tauri/target/${{ matrix.target }}/release/Video Downloader.exe" \
+          cp "src-tauri/target/${{ matrix.target }}/release/video-downloader.exe" \
             "dist-release/Video-Downloader_${GITHUB_REF_NAME}_${{ matrix.variant }}_windows_${{ matrix.arch }}-portable.exe" || true
 
       - name: Collect Linux artifacts
