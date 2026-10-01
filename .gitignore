@@ -1,0 +1,26 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build outputs
+dist/
+src-tauri/target/
+src-tauri/gen/
+
+# Bundled third-party tool binaries (downloaded by scripts/fetch-tools.sh for "full" builds)
+src-tauri/binaries/
+
+# OS noise
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Local cargo home (sandboxed builds keep the registry inside the workspace)
+.cargo-home/
+
+# Logs
+*.log
