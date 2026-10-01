@@ -265,3 +265,121 @@ pub fn build_download_args(
     args.push(spec.url.clone());
     args
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::settings::AppSettings;
+
+    fn base_spec() -> DownloadSpec {
+        DownloadSpec {
+            url: "https://youtu.be/abc".into(),
+            mode: "video".into(),
+            format_id: None,
+            preset: Some("best".into()),
+            audio_format: None,
+            audio_quality: None,
+            allow_playlist: false,
+            playlist_items: None,
+            sub_mode: "none".into(),
+            sub_langs: vec![],
+            write_auto_subs: false,
+            convert_subs_to_srt: false,
+            merge_format: None,
+            embed_thumbnail: false,
+            embed_metadata: false,
+            embed_chapters: false,
+            rate_limit: None,
+            output_dir: "/tmp/out".into(),
+            filename_template: "%(title)s.%(ext)s".into(),
+            proxy: "http://127.0.0.1:7890".into(),
+            cookies_mode: "file".into(),
+            cookies_file: "/tmp/cookies.txt".into(),
+            cookies_browser: String::new(),
+            extra_args: String::new(),
+        }
+    }
+
+    #[test]
+    fn video_preset_and_network_args() {
+        let s = AppSettings::default();
+        let a = build_download_args(&base_spec(), &s, Some("/opt/ffmpeg"));
+        let joined = a.join("\u{1f}");
+        assert!(joined.contains("-f\u{1f}bv*+ba/b"));
+        assert!(joined.contains("--proxy\u{1f}http://127.0.0.1:7890"));
+        assert!(joined.contains("--cookies\u{1f}/tmp/cookies.txt"));
+        assert!(joined.contains("--no-playlist"));
+        assert!(joined.contains("--ffmpeg-location\u{1f}/opt/ffmpeg"));
+        assert!(joined.contains("-P\u{1f}/tmp/out"));
+        assert!(joined.contains("-o\u{1f}%(title)s.%(ext)s"));
+        assert!(a.last().unwrap() == "https://youtu.be/abc");
+    }
+
+    #[test]
+    fn explicit_format_pairs_bestaudio() {
+        let s = AppSettings::default();
+        let mut spec = base_spec();
+        spec.format_id = Some("137".into());
+        let a = build_download_args(&spec, &s, None);
+        assert!(a.join("\u{1f}").contains("-f\u{1f}137+bestaudio/137"));
+    }
+
+    #[test]
+    fn subs_only_mode() {
+        let s = AppSettings::default();
+        let mut spec = base_spec();
+        spec.mode = "subs".into();
+        spec.sub_langs = vec!["en".into(), "zh-Hans".into()];
+        spec.convert_subs_to_srt = true;
+        let a = build_download_args(&spec, &s, None);
+        let j = a.join("\u{1f}");
+        assert!(j.contains("--skip-download"));
+        assert!(j.contains("--write-subs"));
+        assert!(j.contains("--sub-langs\u{1f}en,zh-Hans"));
+        assert!(j.contains("--convert-subs\u{1f}srt"));
+        assert!(!j.contains("--embed-subs"));
+    }
+
+    #[test]
+    fn embed_subs_and_playlist_range() {
+        let s = AppSettings::default();
+        let mut spec = base_spec();
+        spec.sub_mode = "embed".into();
+        spec.allow_playlist = true;
+        spec.playlist_items = Some("1-10,15".into());
+        let a = build_download_args(&spec, &s, None);
+        let j = a.join("\u{1f}");
+        assert!(j.contains("--embed-subs"));
+        assert!(j.contains("--yes-playlist"));
+        assert!(j.contains("--playlist-items\u{1f}1-10,15"));
+    }
+
+    #[test]
+    fn extra_args_split_like_a_shell() {
+        let s = AppSettings::default();
+        let mut spec = base_spec();
+        spec.extra_args = "--sleep-requests 1 --impersonate \"chrome\"".into();
+        let a = build_download_args(&spec, &s, None);
+        let j = a.join("\u{1f}");
+        assert!(j.contains("--sleep-requests\u{1f}1"));
+        assert!(j.contains("--impersonate\u{1f}chrome"));
+    }
+
+    #[test]
+    fn settings_fallbacks_used_when_spec_empty() {
+        let mut s = AppSettings::default();
+        s.download_dir = "/default/dir".into();
+        s.proxy = "socks5://127.0.0.1:1080".into();
+        let mut spec = base_spec();
+        spec.output_dir = String::new();
+        spec.proxy = String::new();
+        spec.cookies_mode = String::new();
+        s.cookies_mode = "browser".into();
+        s.cookies_browser = "safari".into();
+        let a = build_download_args(&spec, &s, None);
+        let j = a.join("\u{1f}");
+        assert!(j.contains("-P\u{1f}/default/dir"));
+        assert!(j.contains("--proxy\u{1f}socks5://127.0.0.1:1080"));
+        assert!(j.contains("--cookies-from-browser\u{1f}safari"));
+    }
+}

@@ -344,3 +344,46 @@ pub fn cancel_download(state: &AppState, id: &str) -> Result<(), String> {
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn parses_progress_line() {
+        let line = "[DSHPROG]|downloading| 42.5%| 1.23MiB/s| 00:10| 1234567.0| | 2903041.0";
+        let ev = parse_progress_line("id1", line).expect("should parse");
+        assert_eq!(ev.kind, "progress");
+        assert_eq!(ev.status.as_deref(), Some("downloading"));
+        assert!((ev.percent.unwrap() - 42.5).abs() < 1e-9);
+        assert_eq!(ev.speed.as_deref(), Some("1.23MiB/s"));
+        assert_eq!(ev.eta.as_deref(), Some("00:10"));
+        assert_eq!(ev.downloaded, Some(1234567.0));
+        // total_bytes empty -> falls back to estimate
+        assert_eq!(ev.total, Some(2903041.0));
+    }
+
+    #[test]
+    fn parses_progress_line_with_na_fields() {
+        let line = "[DSHPROG]|downloading|   NA%| NA| NA| 100.0| NA| NA";
+        let ev = parse_progress_line("id1", line).expect("should parse");
+        assert!(ev.percent.is_none());
+        assert!(ev.speed.is_none());
+        assert!(ev.eta.is_none());
+        assert_eq!(ev.downloaded, Some(100.0));
+        assert!(ev.total.is_none());
+    }
+
+    #[test]
+    fn finished_download_phase_maps_to_processing() {
+        let line = "[DSHPROG]|finished| 100.0%| | | 1000.0| 1000.0| 1000.0";
+        let ev = parse_progress_line("id1", line).expect("should parse");
+        assert_eq!(ev.status.as_deref(), Some("processing"));
+        assert_eq!(ev.percent, Some(100.0));
+    }
+
+    #[test]
+    fn rejects_foreign_lines() {
+        assert!(parse_progress_line("id1", "[download] Destination: x").is_none());
+    }
+}
