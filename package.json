@@ -5,6 +5,7 @@
   "type": "module",
   "description": "A cross-platform desktop GUI for yt-dlp (bilingual: English / 中文)",
   "license": "Apache-2.0",
+  "packageManager": "pnpm@11.7.0",
   "scripts": {
     "dev": "vite",
     "build": "vite build",

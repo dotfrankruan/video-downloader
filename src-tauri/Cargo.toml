@@ -29,7 +29,3 @@ thiserror = "2"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2"
-
-[features]
-# Enabled only for "full" builds that bundle yt-dlp/ffmpeg sidecars.
-bundle-tools = []

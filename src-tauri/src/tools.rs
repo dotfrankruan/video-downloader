@@ -121,6 +121,58 @@ fn bundled_candidate(base: &str) -> Option<PathBuf> {
     None
 }
 
+/// Copy/symlink a bundled sidecar into the app data dir under its CLEAN name
+/// (`yt-dlp`, `ffmpeg`, `ffprobe`). yt-dlp locates ffprobe/avconv next to the
+/// ffmpeg binary by exact name, which the triple-suffixed sidecar names break,
+/// so all bundled tools are materialized before use.
+fn materialize_bundled(app_data_dir: &Path) {
+    let bin_dir = appdata_bin_dir(app_data_dir);
+    for base in [YTDLP, FFMPEG, "ffprobe"] {
+        let Some(sidecar) = bundled_candidate(base) else {
+            continue;
+        };
+        if std::fs::create_dir_all(&bin_dir).is_err() {
+            return;
+        }
+        let dest = bin_dir.join(exe_name(base));
+        #[cfg(unix)]
+        {
+            // Re-link if missing or pointing elsewhere (e.g. after an app update).
+            let stale = match std::fs::read_link(&dest) {
+                Ok(target) => target != sidecar,
+                Err(_) => dest.exists(), // non-symlink file in the way
+            };
+            if !dest.exists() || stale {
+                let _ = std::fs::remove_file(&dest);
+                let _ = std::os::unix::fs::symlink(&sidecar, &dest);
+            }
+        }
+        #[cfg(windows)]
+        {
+            // Symlinks need privileges on Windows; copy instead. Re-copy when the
+            // size differs (cheap staleness check after app updates).
+            let stale = match (std::fs::metadata(&dest), std::fs::metadata(&sidecar)) {
+                (Ok(d), Ok(s)) => d.len() != s.len(),
+                _ => true,
+            };
+            if !dest.exists() || stale {
+                let _ = std::fs::copy(&sidecar, &dest);
+            }
+        }
+    }
+}
+
+/// Materialized clean-name path of a bundled tool, if it exists.
+fn bundled_materialized(base: &str, app_data_dir: &Path) -> Option<PathBuf> {
+    bundled_candidate(base)?; // only when a real sidecar exists
+    let p = appdata_bin_dir(app_data_dir).join(exe_name(base));
+    if p.exists() {
+        Some(p)
+    } else {
+        None
+    }
+}
+
 pub fn target_triple() -> &'static str {
     #[cfg(all(target_os = "macos", target_arch = "aarch64"))]
     return "aarch64-apple-darwin";
@@ -169,10 +221,12 @@ fn resolve_tool(
             return Some(info);
         }
     }
-    // 2. bundled sidecar (full builds)
-    if let Some(p) = bundled_candidate(base) {
-        if let Some(info) = probe(&p, "bundled") {
-            return Some(info);
+    // 2. bundled sidecar (full builds), materialized under its clean name
+    if let Some(dir) = app_data_dir {
+        if let Some(p) = bundled_materialized(base, dir) {
+            if let Some(info) = probe(&p, "bundled") {
+                return Some(info);
+            }
         }
     }
     // 3. downloaded copy in app data dir
@@ -192,6 +246,11 @@ fn resolve_tool(
 }
 
 pub fn resolve_all(settings: &AppSettings, app_data_dir: Option<&Path>) -> ResolvedTools {
+    // Materialize bundled sidecars (clean names) before probing, so that
+    // yt-dlp can find ffprobe next to ffmpeg in "full" builds.
+    if let Some(dir) = app_data_dir {
+        materialize_bundled(dir);
+    }
     ResolvedTools {
         ytdlp: resolve_tool(YTDLP, &settings.ytdlp_path, app_data_dir),
         ffmpeg: resolve_tool(FFMPEG, &settings.ffmpeg_path, app_data_dir),
