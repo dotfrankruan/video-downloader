@@ -71,11 +71,13 @@ cd "$WORK/ffmpeg-$FFMPEG_VER"
 
 echo ">> pkg-config sanity check"
 "$PKGCONF" --version
-"$PKGCONF" --exists vorbis vorbisenc && echo "vorbis: ok" || { echo "vorbis MISSING:"; "$PKGCONF" --print-errors --exists vorbis vorbisenc || true; }
+"$PKGCONF" --exists vorbis vorbisenc vorbisfile && echo "vorbis: ok" || { echo "vorbis MISSING:"; "$PKGCONF" --print-errors --exists vorbis vorbisenc vorbisfile || true; }
 "$PKGCONF" --exists opus && echo "opus: ok"
+"$PKGCONF" --cflags --libs vorbis vorbisenc vorbisfile opus
 ls "$PREFIX/include/lame/lame.h" && echo "lame header: ok"
 
 echo ">> configuring (static, yt-dlp-oriented, aarch64 mingw)"
+set +e
 ./configure \
   --arch=aarch64 \
   --target-os=mingw32 \
@@ -103,6 +105,13 @@ echo ">> configuring (static, yt-dlp-oriented, aarch64 mingw)"
   --extra-cflags="-I$PREFIX/include" \
   --extra-ldflags="-L$PREFIX/lib -static" \
   --pkg-config="$PKGCONF"
+rc=$?
+if [ $rc -ne 0 ]; then
+  echo ">> configure failed ($rc); tail of ffbuild/config.log:"
+  tail -60 ffbuild/config.log || true
+  exit $rc
+fi
+set -e
 
 echo ">> building with $(nproc) jobs (this takes a while)"
 make -j"$(nproc)" ffmpeg.exe ffprobe.exe
