@@ -106,6 +106,7 @@
   "settings.tools.customInvalid": "自定义路径无效（文件不存在或无法执行），已回退到其他来源。请清空或选择有效二进制。",
   "settings.tools.bundledNote": "本版本已内置 yt-dlp 与 ffmpeg，无需下载。",
   "settings.tools.downloadDest": "下载的工具存放于：{path}",
+  "settings.tools.details": "详情",
   "settings.tools.ffmpegHint": "合并格式、提取音频、嵌入字幕需要 ffmpeg。可用包管理器安装（如 brew install ffmpeg）或设置自定义路径。「完整版」安装包已内置。",
   "settings.network": "网络",
   "settings.proxy": "代理",

@@ -31,8 +31,8 @@ const MAX_LOG_LINES = 200;
 class AppStore {
   settings = $state<AppSettings>({ ...defaultSettings });
   tools = $state<ResolvedTools>({
-    ytdlp: { info: null, customInvalid: false },
-    ffmpeg: { info: null, customInvalid: false },
+    ytdlp: { info: null, customInvalid: false, attempts: [] },
+    ffmpeg: { info: null, customInvalid: false, attempts: [] },
   });
   appInfo = $state<AppInfo>({ version: "", variant: "lite", toolsDir: "" });
   tasks = $state<Task[]>([]);

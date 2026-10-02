@@ -36,6 +36,19 @@ pub struct ToolResolution {
     /// True when the user configured a custom path but it does not run —
     /// shown as an explicit warning instead of silently falling back.
     pub custom_invalid: bool,
+    /// Every candidate we tried, newest understanding for support/debugging.
+    pub attempts: Vec<ProbeAttempt>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ProbeAttempt {
+    /// "custom" | "bundled" | "appdata" | "path" | "none"
+    pub source: String,
+    pub path: String,
+    pub ok: bool,
+    /// Version string when ok, otherwise the failure reason.
+    pub detail: String,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]

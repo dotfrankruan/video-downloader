@@ -106,6 +106,7 @@
   "settings.tools.customInvalid": "Custom path is set but the binary does not run — falling back to other sources. Clear the field or pick a valid binary.",
   "settings.tools.bundledNote": "yt-dlp and ffmpeg are bundled in this build; no download needed.",
   "settings.tools.downloadDest": "Downloaded tools are stored in: {path}",
+  "settings.tools.details": "Details",
   "settings.tools.ffmpegHint": "ffmpeg is needed for merging formats, extracting audio and embedding subtitles. Install via your package manager (e.g. brew install ffmpeg) or set a custom path. The \"full\" installer bundles it.",
   "settings.network": "Network",
   "settings.proxy": "Proxy",

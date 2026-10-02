@@ -73,6 +73,11 @@
     if (!res.info) return t("settings.tools.notFound");
     return `${res.info.version} (${res.info.source})`;
   }
+
+  let showAttempts = $state<Record<string, boolean>>({});
+  function toggleAttempts(tool: string) {
+    showAttempts = { ...showAttempts, [tool]: !showAttempts[tool] };
+  }
 </script>
 
 <div>
@@ -94,10 +99,38 @@
     <legend>{t("settings.tools")}</legend>
     <div class="form-grid">
       <label>{t("settings.tools.ytdlp")}</label>
-      <span class="muted">{toolStatus(store.tools.ytdlp)}</span>
+      <div>
+        <span class="muted">{toolStatus(store.tools.ytdlp)}</span>
+        {#if !store.tools.ytdlp.info && store.tools.ytdlp.attempts.length > 0}
+          <button style="margin-left: 8px; padding: 1px 8px; font-size: 11px" onclick={() => toggleAttempts("ytdlp")}>
+            {t("settings.tools.details")}
+          </button>
+        {/if}
+        {#if showAttempts.ytdlp}
+          <div class="logbox" style="margin-top: 6px">
+            {#each store.tools.ytdlp.attempts as a}
+              <div>{a.ok ? "✓" : "✗"} [{a.source}] {a.path || "-"} — {a.detail}</div>
+            {/each}
+          </div>
+        {/if}
+      </div>
 
       <label>{t("settings.tools.ffmpeg")}</label>
-      <span class="muted">{toolStatus(store.tools.ffmpeg)}</span>
+      <div>
+        <span class="muted">{toolStatus(store.tools.ffmpeg)}</span>
+        {#if !store.tools.ffmpeg.info && store.tools.ffmpeg.attempts.length > 0}
+          <button style="margin-left: 8px; padding: 1px 8px; font-size: 11px" onclick={() => toggleAttempts("ffmpeg")}>
+            {t("settings.tools.details")}
+          </button>
+        {/if}
+        {#if showAttempts.ffmpeg}
+          <div class="logbox" style="margin-top: 6px">
+            {#each store.tools.ffmpeg.attempts as a}
+              <div>{a.ok ? "✓" : "✗"} [{a.source}] {a.path || "-"} — {a.detail}</div>
+            {/each}
+          </div>
+        {/if}
+      </div>
 
       <label>{t("settings.tools.path")} · yt-dlp</label>
       <div>

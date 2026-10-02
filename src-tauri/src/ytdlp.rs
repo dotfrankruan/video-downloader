@@ -146,6 +146,12 @@ fn infer_status_from_line(line: &str) -> Option<&'static str> {
     }
 }
 
+/// Hide the console window flash for spawned processes on Windows.
+#[cfg(windows)]
+fn no_window(cmd: &mut Command) {
+    cmd.creation_flags(0x08000000); // CREATE_NO_WINDOW
+}
+
 pub async fn fetch_info(
     ytdlp_path: &str,
     url: &str,
@@ -153,10 +159,13 @@ pub async fn fetch_info(
     settings: &AppSettings,
 ) -> Result<serde_json::Value, String> {
     let args = build_info_args(url, flat_playlist, settings);
-    let output = Command::new(ytdlp_path)
-        .args(&args)
+    let mut cmd = Command::new(ytdlp_path);
+    cmd.args(&args)
         .stdout(Stdio::piped())
-        .stderr(Stdio::piped())
+        .stderr(Stdio::piped());
+    #[cfg(windows)]
+    no_window(&mut cmd);
+    let output = cmd
         .output()
         .await
         .map_err(|e| format!("failed to launch yt-dlp: {e}"))?;
@@ -339,9 +348,11 @@ pub fn cancel_download(state: &AppState, id: &str) -> Result<(), String> {
     }
     #[cfg(windows)]
     {
-        let _ = std::process::Command::new("taskkill")
-            .args(["/PID", &pid.to_string(), "/T", "/F"])
-            .output();
+        let mut tk = std::process::Command::new("taskkill");
+        tk.args(["/PID", &pid.to_string(), "/T", "/F"]);
+        use std::os::windows::process::CommandExt;
+        tk.creation_flags(0x08000000); // CREATE_NO_WINDOW
+        let _ = tk.output();
     }
     Ok(())
 }

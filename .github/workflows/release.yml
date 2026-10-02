@@ -71,6 +71,16 @@ jobs:
         if: matrix.variant == 'full'
         run: bash scripts/fetch-tools.sh "${{ matrix.target }}"
 
+      - name: Smoke-test sidecar binaries (full variant)
+        if: matrix.variant == 'full'
+        shell: bash
+        run: |
+          set -e
+          EXT=""; case "${{ matrix.target }}" in *windows*) EXT=".exe";; esac
+          "./src-tauri/binaries/yt-dlp-${{ matrix.target }}${EXT}" --version
+          "./src-tauri/binaries/ffmpeg-${{ matrix.target }}${EXT}" -version | head -1
+          "./src-tauri/binaries/ffprobe-${{ matrix.target }}${EXT}" -version | head -1
+
       - name: Build lite variant
         if: matrix.variant == 'lite'
         run: pnpm tauri build --target "${{ matrix.target }}"
@@ -99,11 +109,27 @@ jobs:
         if: runner.os == 'Windows'
         shell: bash
         run: |
+          set -e
           mkdir -p dist-release
           B="src-tauri/target/${{ matrix.target }}/release/bundle"
           find "$B/nsis" -name '*.exe' -exec cp {} "dist-release/Video-Downloader_${GITHUB_REF_NAME}_${{ matrix.variant }}_windows_${{ matrix.arch }}-setup.exe" \;
-          cp "src-tauri/target/${{ matrix.target }}/release/video-downloader.exe" \
-            "dist-release/Video-Downloader_${GITHUB_REF_NAME}_${{ matrix.variant }}_windows_${{ matrix.arch }}-portable.exe" || true
+          if [ "${{ matrix.variant }}" = "lite" ]; then
+            # lite: single portable exe (sidecar-free by design)
+            cp "src-tauri/target/${{ matrix.target }}/release/video-downloader.exe" \
+              "dist-release/Video-Downloader_${GITHUB_REF_NAME}_lite_windows_${{ matrix.arch }}-portable.exe"
+          else
+            # full: a portable ZIP — the exe plus its sidecar tools together.
+            # A bare exe can never be "full": Tauri sidecars live NEXT to the
+            # exe, not inside it.
+            P="portable-full"
+            rm -rf "$P" && mkdir -p "$P"
+            cp "src-tauri/target/${{ matrix.target }}/release/video-downloader.exe" "$P/"
+            for tool in yt-dlp ffmpeg ffprobe; do
+              cp "src-tauri/binaries/$tool-${{ matrix.target }}.exe" "$P/$tool.exe"
+            done
+            (cd "$P" && tar -a -c -f "../Video-Downloader_${GITHUB_REF_NAME}_full_windows_${{ matrix.arch }}-portable.zip" ./*)
+            mv "Video-Downloader_${GITHUB_REF_NAME}_full_windows_${{ matrix.arch }}-portable.zip" dist-release/
+          fi
 
       - name: Collect Linux artifacts
         if: runner.os == 'Linux'

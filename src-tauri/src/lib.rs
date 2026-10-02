@@ -66,13 +66,22 @@ fn save_settings(state: tauri::State<'_, SharedState>, settings: AppSettings) ->
     Ok(())
 }
 
+/// Runs the (process-spawning, potentially slow on Windows due to AV
+/// scanning) tool resolution off the main thread so the UI never blocks.
 #[tauri::command]
-fn detect_tools(app: AppHandle, state: tauri::State<'_, SharedState>) -> state::ResolvedTools {
+async fn detect_tools(
+    app: AppHandle,
+    state: tauri::State<'_, SharedState>,
+) -> Result<state::ResolvedTools, String> {
     let app_data_dir = app.path().app_data_dir().ok();
     let settings = state.settings.read().unwrap().clone();
-    let resolved = tools::resolve_all(&settings, app_data_dir.as_deref());
+    let resolved = tauri::async_runtime::spawn_blocking(move || {
+        tools::resolve_all(&settings, app_data_dir.as_deref())
+    })
+    .await
+    .map_err(|e| e.to_string())?;
     *state.tools.write().unwrap() = resolved.clone();
-    resolved
+    Ok(resolved)
 }
 
 #[tauri::command]
@@ -174,17 +183,17 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(shared)
         .setup(|app| {
-            // Load persisted settings, then resolve external tools once at startup.
+            // Load persisted settings. Tool resolution is intentionally NOT
+            // done here: it spawns probe processes (slow on Windows due to AV
+            // scanning), so it happens via the async detect_tools command
+            // triggered by the frontend on startup instead of blocking setup.
             let config_dir = app.path().app_config_dir()?;
             let settings_path = config_dir.join("settings.json");
             let settings = AppSettings::load(&settings_path);
-            let app_data_dir = app.path().app_data_dir().ok();
-            let resolved = tools::resolve_all(&settings, app_data_dir.as_deref());
 
             let state = app.state::<SharedState>();
             *state.settings.write().unwrap() = settings;
             *state.settings_path.write().unwrap() = Some(settings_path);
-            *state.tools.write().unwrap() = resolved;
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![

@@ -43,10 +43,20 @@ export interface ToolInfo {
   source: "custom" | "bundled" | "appdata" | "path";
 }
 
+export interface ProbeAttempt {
+  source: "custom" | "bundled" | "appdata" | "path";
+  path: string;
+  ok: boolean;
+  /** version string when ok, otherwise the failure reason */
+  detail: string;
+}
+
 export interface ToolResolution {
   info: ToolInfo | null;
   /** true when a custom path is configured but the binary does not run */
   customInvalid: boolean;
+  /** every candidate tried, with per-attempt error details */
+  attempts: ProbeAttempt[];
 }
 
 export interface ResolvedTools {
