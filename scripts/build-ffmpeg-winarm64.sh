@@ -31,8 +31,11 @@ mkdir -p "$OUT_DIR"
 
 # MSYS2's clangarm64 repo lacks libmp3lame/libopus packages, so build the
 # two small audio codec libs from source first (each ~1-2 min).
+# lame/opus install into the toolchain prefix itself, so clang and
+# pkg-config find them via their built-in defaults — no PKG_CONFIG_PATH
+# overrides needed (those risk breaking pkgconf's default search path).
 PREFIX="/clangarm64"
-export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+PKGCONF="/clangarm64/bin/pkg-config"
 
 echo ">> building lame (mp3 encoder) from source"
 curl -fL --retry 3 -o "$WORK/lame.tar.gz" \
@@ -66,6 +69,12 @@ curl -fL --retry 3 -o "$WORK/ffmpeg.tar.xz" \
 tar -xJf "$WORK/ffmpeg.tar.xz" -C "$WORK"
 cd "$WORK/ffmpeg-$FFMPEG_VER"
 
+echo ">> pkg-config sanity check"
+"$PKGCONF" --version
+"$PKGCONF" --exists vorbis vorbisenc && echo "vorbis: ok" || { echo "vorbis MISSING:"; "$PKGCONF" --print-errors --exists vorbis vorbisenc || true; }
+"$PKGCONF" --exists opus && echo "opus: ok"
+ls "$PREFIX/include/lame/lame.h" && echo "lame header: ok"
+
 echo ">> configuring (static, yt-dlp-oriented, aarch64 mingw)"
 ./configure \
   --arch=aarch64 \
@@ -93,7 +102,7 @@ echo ">> configuring (static, yt-dlp-oriented, aarch64 mingw)"
   --enable-decoder=aac,mp3,mp3float,opus,vorbis,flac,pcm_s16le,pcm_s24le,pcm_f32le,h264,hevc,vp9,av1,webp,png,mjpeg,subrip,mov_text,webvtt,ass,ssa,dvd_subtitle \
   --extra-cflags="-I$PREFIX/include" \
   --extra-ldflags="-L$PREFIX/lib -static" \
-  --pkg-config=pkg-config
+  --pkg-config="$PKGCONF"
 
 echo ">> building with $(nproc) jobs (this takes a while)"
 make -j"$(nproc)" ffmpeg.exe ffprobe.exe
