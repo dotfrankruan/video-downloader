@@ -36,7 +36,10 @@ case "$TRIPLE" in
   x86_64-pc-windows-msvc)
     YTDLP_ASSET="yt-dlp.exe"; EXE=".exe"; FFMPEG_KIND="win64" ;;
   aarch64-pc-windows-msvc)
-    YTDLP_ASSET="yt-dlp_arm64.exe"; EXE=".exe"; FFMPEG_KIND="winarm64" ;;
+    # NOTE: no prebuilt ffmpeg here — the only one (yt-dlp/FFmpeg-Builds)
+    # segfaults at startup, so CI builds it instead via
+    # scripts/build-ffmpeg-winarm64.sh. This script downloads yt-dlp only.
+    YTDLP_ASSET="yt-dlp_arm64.exe"; EXE=".exe"; FFMPEG_KIND="build" ;;
   x86_64-unknown-linux-gnu)
     YTDLP_ASSET="yt-dlp_linux"; EXE=""; FFMPEG_KIND="linux64" ;;
   aarch64-unknown-linux-gnu)
@@ -54,6 +57,17 @@ curl -fL --retry 3 -o "$TMP/yt-dlp$EXE" \
   "https://github.com/yt-dlp/yt-dlp/releases/latest/download/$YTDLP_ASSET"
 
 case "$FFMPEG_KIND" in
+  build)
+    echo ">> skipping ffmpeg download (CI builds it via build-ffmpeg-winarm64.sh)"
+    install_bin() {
+      cp "$1" "$OUT_DIR/$2"
+      chmod 755 "$OUT_DIR/$2"
+      echo "   installed $OUT_DIR/$2 ($(du -h "$OUT_DIR/$2" | cut -f1))"
+    }
+    install_bin "$TMP/yt-dlp$EXE" "yt-dlp-$TRIPLE$EXE"
+    echo ">> done. yt-dlp sidecar ready; ffmpeg must be built separately"
+    exit 0
+    ;;
   macos-*)
     echo ">> downloading ffmpeg + ffprobe (martin-riedl.de, $FFMPEG_KIND)"
     curl -fL --retry 3 -o "$TMP/ffmpeg.zip" \

@@ -26,10 +26,10 @@ jobs:
           - { os: windows-latest, target: x86_64-pc-windows-msvc, arch: x86_64, variant: lite }
           - { os: windows-latest, target: x86_64-pc-windows-msvc, arch: x86_64, variant: full }
           - { os: windows-11-arm, target: aarch64-pc-windows-msvc, arch: arm64, variant: lite }
-          # NOTE: no Windows arm64 FULL variant — the only prebuilt
-          # winarm64 ffmpeg (yt-dlp/FFmpeg-Builds) segfaults at startup
-          # (reproduced twice in CI smoke tests). Ship lite only; users can
-          # install ffmpeg themselves.
+          # Windows arm64 full: ffmpeg is BUILT FROM SOURCE (the only
+          # prebuilt winarm64 ffmpeg segfaults at startup). See the
+          # "Build ffmpeg from source" step below.
+          - { os: windows-11-arm, target: aarch64-pc-windows-msvc, arch: arm64, variant: full }
           # ---- Linux ----
           - { os: ubuntu-22.04, target: x86_64-unknown-linux-gnu, arch: x86_64, variant: lite }
           - { os: ubuntu-22.04, target: x86_64-unknown-linux-gnu, arch: x86_64, variant: full }
@@ -70,9 +70,31 @@ jobs:
       - name: Install frontend dependencies
         run: pnpm install --frozen-lockfile
 
-      - name: Fetch prebuilt yt-dlp + ffmpeg sidecars (full variant)
+      - name: Fetch prebuilt yt-dlp (+ffmpeg where available) sidecars (full variant)
         if: matrix.variant == 'full'
         run: bash scripts/fetch-tools.sh "${{ matrix.target }}"
+
+      # Windows arm64 only: no usable prebuilt ffmpeg exists, so we compile a
+      # minimal static build ourselves (GPLv3, yt-dlp-oriented feature set).
+      - name: Set up MSYS2 CLANGARM64 (Windows arm64 ffmpeg build)
+        if: matrix.variant == 'full' && matrix.target == 'aarch64-pc-windows-msvc'
+        uses: msys2/setup-msys2@v2
+        with:
+          msystem: CLANGARM64
+          update: true
+          install: >-
+            make
+            diffutils
+            mingw-w64-clang-aarch64-toolchain
+            mingw-w64-clang-aarch64-pkgconf
+            mingw-w64-clang-aarch64-libmp3lame
+            mingw-w64-clang-aarch64-libopus
+            mingw-w64-clang-aarch64-libvorbis
+
+      - name: Build ffmpeg from source (Windows arm64)
+        if: matrix.variant == 'full' && matrix.target == 'aarch64-pc-windows-msvc'
+        shell: msys2 {0}
+        run: bash scripts/build-ffmpeg-winarm64.sh "${{ matrix.target }}"
 
       - name: Smoke-test sidecar binaries (full variant)
         if: matrix.variant == 'full'
