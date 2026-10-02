@@ -164,6 +164,9 @@ jobs:
           find "$B/deb" -name '*.deb' -exec cp {} "dist-release/Video-Downloader_${GITHUB_REF_NAME}_${{ matrix.variant }}_linux_${{ matrix.arch }}.deb" \;
 
       - name: Upload release assets
+        # Only tag pushes create releases; workflow_dispatch runs are for
+        # build validation and must skip this step (it fails without a tag).
+        if: startsWith(github.ref, 'refs/tags/')
         uses: softprops/action-gh-release@v2
         with:
           files: dist-release/*
