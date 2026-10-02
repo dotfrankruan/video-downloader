@@ -85,10 +85,9 @@ jobs:
           install: >-
             make
             diffutils
+            curl
             mingw-w64-clang-aarch64-toolchain
             mingw-w64-clang-aarch64-pkgconf
-            mingw-w64-clang-aarch64-libmp3lame
-            mingw-w64-clang-aarch64-libopus
             mingw-w64-clang-aarch64-libvorbis
 
       - name: Build ffmpeg from source (Windows arm64)

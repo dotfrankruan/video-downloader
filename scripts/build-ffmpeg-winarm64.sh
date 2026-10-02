@@ -29,6 +29,33 @@ trap 'rm -rf "$WORK"' EXIT
 
 mkdir -p "$OUT_DIR"
 
+# MSYS2's clangarm64 repo lacks libmp3lame/libopus packages, so build the
+# two small audio codec libs from source first (each ~1-2 min).
+PREFIX="/clangarm64"
+export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
+
+echo ">> building lame (mp3 encoder) from source"
+curl -fL --retry 3 -o "$WORK/lame.tar.gz" \
+  "https://downloads.sourceforge.net/lame/lame/lame-3.100/lame-3.100.tar.gz"
+tar -xzf "$WORK/lame.tar.gz" -C "$WORK"
+cd "$WORK/lame-3.100"
+# lame 3.100's bundled config.sub/guess predate aarch64-w64-mingw32.
+for f in config.sub config.guess; do
+  curl -fsSL --retry 3 -o "$f" "https://git.savannah.gnu.org/cgit/config.git/plain/$f"
+done
+./configure --prefix="$PREFIX" --enable-static --disable-shared --disable-frontend
+make -j"$(nproc)"
+make install
+
+echo ">> building opus from source"
+curl -fL --retry 3 -o "$WORK/opus.tar.gz" \
+  "https://github.com/xiph/opus/releases/download/v1.5.2/opus-1.5.2.tar.gz"
+tar -xzf "$WORK/opus.tar.gz" -C "$WORK"
+cd "$WORK/opus-1.5.2"
+./configure --prefix="$PREFIX" --enable-static --disable-shared --disable-doc
+make -j"$(nproc)"
+make install
+
 echo ">> downloading ffmpeg $FFMPEG_VER source"
 curl -fL --retry 3 -o "$WORK/ffmpeg.tar.xz" \
   "https://ffmpeg.org/releases/ffmpeg-$FFMPEG_VER.tar.xz"
@@ -60,7 +87,8 @@ echo ">> configuring (static, yt-dlp-oriented, aarch64 mingw)"
   --enable-encoder=aac,libmp3lame,libopus,libvorbis,flac,pcm_s16le,pcm_s24le,pcm_f32le,webvtt,srt,mov_text,ass,subrip,png,mjpeg,copy \
   --disable-decoders \
   --enable-decoder=aac,mp3,mp3float,opus,vorbis,flac,pcm_s16le,pcm_s24le,pcm_f32le,h264,hevc,vp9,av1,webp,png,mjpeg,subrip,mov_text,webvtt,ass,ssa,dvd_subtitle \
-  --extra-ldflags="-static" \
+  --extra-cflags="-I$PREFIX/include" \
+  --extra-ldflags="-L$PREFIX/lib -static" \
   --pkg-config=pkg-config
 
 echo ">> building with $(nproc) jobs (this takes a while)"
