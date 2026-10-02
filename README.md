@@ -43,6 +43,10 @@ Two variants per platform/architecture:
 | **full（完整版）** | 内置 yt-dlp + ffmpeg + ffprobe 官方预编译二进制，开箱即用、零依赖，适合无法访问 GitHub 或离线环境。<br>Bundles official prebuilt yt-dlp + ffmpeg + ffprobe. Zero dependencies, works offline. |
 
 支持平台：macOS（arm64 / x86_64）、Windows（x86_64 / arm64）、Linux（x86_64 / arm64，AppImage + .deb）。
+注意：Windows arm64 暂无 full 版（唯一可用的 winarm64 ffmpeg 预编译二进制启动即崩溃，详见 CI 记录）；lite 版可自行安装 ffmpeg。
+
+Platforms: macOS (arm64 / x86_64), Windows (x86_64 / arm64), Linux (x86_64 / arm64, AppImage + .deb).
+Note: no full build for Windows arm64 — the only prebuilt winarm64 ffmpeg binary segfaults on startup; use lite and install ffmpeg yourself.
 
 ### ⚠️ macOS 用户必读（未签名应用）· macOS: unsigned app
 

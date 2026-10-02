@@ -26,7 +26,10 @@ jobs:
           - { os: windows-latest, target: x86_64-pc-windows-msvc, arch: x86_64, variant: lite }
           - { os: windows-latest, target: x86_64-pc-windows-msvc, arch: x86_64, variant: full }
           - { os: windows-11-arm, target: aarch64-pc-windows-msvc, arch: arm64, variant: lite }
-          - { os: windows-11-arm, target: aarch64-pc-windows-msvc, arch: arm64, variant: full }
+          # NOTE: no Windows arm64 FULL variant — the only prebuilt
+          # winarm64 ffmpeg (yt-dlp/FFmpeg-Builds) segfaults at startup
+          # (reproduced twice in CI smoke tests). Ship lite only; users can
+          # install ffmpeg themselves.
           # ---- Linux ----
           - { os: ubuntu-22.04, target: x86_64-unknown-linux-gnu, arch: x86_64, variant: lite }
           - { os: ubuntu-22.04, target: x86_64-unknown-linux-gnu, arch: x86_64, variant: full }
