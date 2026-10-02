@@ -36,7 +36,7 @@ export PKG_CONFIG_PATH="$PREFIX/lib/pkgconfig:${PKG_CONFIG_PATH:-}"
 
 echo ">> building lame (mp3 encoder) from source"
 curl -fL --retry 3 -o "$WORK/lame.tar.gz" \
-  "https://downloads.sourceforge.net/lame/lame/lame-3.100/lame-3.100.tar.gz"
+  "https://downloads.sourceforge.net/project/lame/lame/3.100/lame-3.100.tar.gz"
 tar -xzf "$WORK/lame.tar.gz" -C "$WORK"
 cd "$WORK/lame-3.100"
 # lame 3.100's bundled config.sub/guess predate aarch64-w64-mingw32.
