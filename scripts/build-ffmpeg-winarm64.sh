@@ -52,7 +52,11 @@ curl -fL --retry 3 -o "$WORK/opus.tar.gz" \
   "https://github.com/xiph/opus/releases/download/v1.5.2/opus-1.5.2.tar.gz"
 tar -xzf "$WORK/opus.tar.gz" -C "$WORK"
 cd "$WORK/opus-1.5.2"
-./configure --prefix="$PREFIX" --enable-static --disable-shared --disable-doc
+# opus's ARM asm has no CPU-detection path for Windows-on-ARM
+# ("Configured to use ARM asm but no CPU detection method available"),
+# so use the plain C implementation.
+./configure --prefix="$PREFIX" --enable-static --disable-shared --disable-doc \
+  --disable-rtcd --disable-asm
 make -j"$(nproc)"
 make install
 
