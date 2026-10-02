@@ -23,10 +23,22 @@ ln -s /Applications "$TMP/Applications"
 cp "$ROOT/packaging/READ-ME-FIRST.txt" "$TMP/请先阅读 READ-ME-FIRST.txt"
 
 rm -f "$OUT"
-hdiutil create \
-  -volname "$VOLNAME" \
-  -srcfolder "$TMP" \
-  -ov -format UDZO \
-  "$OUT"
+# hdiutil occasionally fails with a transient "Resource busy" on CI
+# runners; retry a few times before giving up.
+for attempt in 1 2 3 4; do
+  if hdiutil create \
+      -volname "$VOLNAME" \
+      -srcfolder "$TMP" \
+      -ov -format UDZO \
+      "$OUT"; then
+    break
+  fi
+  if [ "$attempt" = 4 ]; then
+    echo "hdiutil failed after $attempt attempts" >&2
+    exit 1
+  fi
+  echo "hdiutil attempt $attempt failed; retrying in 10s..." >&2
+  sleep 10
+done
 
 echo ">> created $OUT"

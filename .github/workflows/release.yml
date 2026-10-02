@@ -5,36 +5,59 @@ on:
     tags:
       - "v*"
   workflow_dispatch:
+    inputs:
+      only:
+        description: "Only build matrix entries whose target contains this substring (e.g. aarch64-pc-windows-msvc). Empty = full matrix."
+        required: false
+        default: ""
 
 permissions:
   contents: write
 
 jobs:
+  # Compute the build matrix dynamically so workflow_dispatch runs can build
+  # just one platform instead of burning the whole 12-job matrix (and so
+  # debugging iterations don't spam failure emails).
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+    steps:
+      - id: matrix
+        env:
+          ONLY: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.only || '' }}
+        run: |
+          set -e
+          read -r -d '' MATRIX <<'EOF' || true
+          {"include":[
+            {"os":"macos-14","target":"aarch64-apple-darwin","arch":"arm64","variant":"lite"},
+            {"os":"macos-14","target":"aarch64-apple-darwin","arch":"arm64","variant":"full"},
+            {"os":"macos-14","target":"x86_64-apple-darwin","arch":"x86_64","variant":"lite"},
+            {"os":"macos-14","target":"x86_64-apple-darwin","arch":"x86_64","variant":"full"},
+            {"os":"windows-latest","target":"x86_64-pc-windows-msvc","arch":"x86_64","variant":"lite"},
+            {"os":"windows-latest","target":"x86_64-pc-windows-msvc","arch":"x86_64","variant":"full"},
+            {"os":"windows-11-arm","target":"aarch64-pc-windows-msvc","arch":"arm64","variant":"lite"},
+            {"os":"windows-11-arm","target":"aarch64-pc-windows-msvc","arch":"arm64","variant":"full"},
+            {"os":"ubuntu-22.04","target":"x86_64-unknown-linux-gnu","arch":"x86_64","variant":"lite"},
+            {"os":"ubuntu-22.04","target":"x86_64-unknown-linux-gnu","arch":"x86_64","variant":"full"},
+            {"os":"ubuntu-22.04-arm","target":"aarch64-unknown-linux-gnu","arch":"arm64","variant":"lite"},
+            {"os":"ubuntu-22.04-arm","target":"aarch64-unknown-linux-gnu","arch":"arm64","variant":"full"}
+          ]}
+          EOF
+          if [ -n "$ONLY" ]; then
+            MATRIX=$(echo "$MATRIX" | jq -c --arg o "$ONLY" '{include: [.include[] | select(.target | contains($o))]}')
+          fi
+          echo "matrix=$MATRIX" >> "$GITHUB_OUTPUT"
+          echo "building: $(echo "$MATRIX" | jq -r '.include[] | .target + "/" + .variant' | tr '\n' ' ')"
+
   build:
+    needs: prepare
     strategy:
       fail-fast: false
-      # Fully explicit combos: mixing `include` with a second axis
-      # (`variant: [lite, full]`) does NOT cross-product reliably.
-      matrix:
-        include:
-          # ---- macOS (ad-hoc signed, both architectures) ----
-          - { os: macos-14, target: aarch64-apple-darwin, arch: arm64, variant: lite }
-          - { os: macos-14, target: aarch64-apple-darwin, arch: arm64, variant: full }
-          - { os: macos-14, target: x86_64-apple-darwin, arch: x86_64, variant: lite }
-          - { os: macos-14, target: x86_64-apple-darwin, arch: x86_64, variant: full }
-          # ---- Windows ----
-          - { os: windows-latest, target: x86_64-pc-windows-msvc, arch: x86_64, variant: lite }
-          - { os: windows-latest, target: x86_64-pc-windows-msvc, arch: x86_64, variant: full }
-          - { os: windows-11-arm, target: aarch64-pc-windows-msvc, arch: arm64, variant: lite }
-          # Windows arm64 full: ffmpeg is BUILT FROM SOURCE (the only
-          # prebuilt winarm64 ffmpeg segfaults at startup). See the
-          # "Build ffmpeg from source" step below.
-          - { os: windows-11-arm, target: aarch64-pc-windows-msvc, arch: arm64, variant: full }
-          # ---- Linux ----
-          - { os: ubuntu-22.04, target: x86_64-unknown-linux-gnu, arch: x86_64, variant: lite }
-          - { os: ubuntu-22.04, target: x86_64-unknown-linux-gnu, arch: x86_64, variant: full }
-          - { os: ubuntu-22.04-arm, target: aarch64-unknown-linux-gnu, arch: arm64, variant: lite }
-          - { os: ubuntu-22.04-arm, target: aarch64-unknown-linux-gnu, arch: arm64, variant: full }
+      # Windows arm64 full: ffmpeg is BUILT FROM SOURCE (the only
+      # prebuilt winarm64 ffmpeg segfaults at startup). See the
+      # "Build ffmpeg from source" step below.
+      matrix: ${{ fromJSON(needs.prepare.outputs.matrix) }}
 
     runs-on: ${{ matrix.os }}
     name: ${{ matrix.os }} / ${{ matrix.target }} / ${{ matrix.variant }}

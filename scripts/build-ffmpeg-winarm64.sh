@@ -104,7 +104,8 @@ set +e
   --enable-decoder=aac,mp3,mp3float,opus,vorbis,flac,pcm_s16le,pcm_s24le,pcm_f32le,h264,hevc,vp9,av1,webp,png,mjpeg,subrip,mov_text,webvtt,ass,ssa,dvd_subtitle \
   --extra-cflags="-I$PREFIX/include" \
   --extra-ldflags="-L$PREFIX/lib -static" \
-  --pkg-config="$PKGCONF"
+  --pkg-config="$PKGCONF" \
+  --pkg-config-flags="--static"
 rc=$?
 if [ $rc -ne 0 ]; then
   echo ">> configure failed ($rc); tail of ffbuild/config.log:"
