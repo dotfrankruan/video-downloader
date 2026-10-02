@@ -43,9 +43,23 @@ export interface ToolInfo {
   source: "custom" | "bundled" | "appdata" | "path";
 }
 
+export interface ToolResolution {
+  info: ToolInfo | null;
+  /** true when a custom path is configured but the binary does not run */
+  customInvalid: boolean;
+}
+
 export interface ResolvedTools {
-  ytdlp: ToolInfo | null;
-  ffmpeg: ToolInfo | null;
+  ytdlp: ToolResolution;
+  ffmpeg: ToolResolution;
+}
+
+export interface AppInfo {
+  version: string;
+  /** "full" when tools are bundled, otherwise "lite" */
+  variant: string;
+  /** directory where runtime-downloaded tools are stored */
+  toolsDir: string;
 }
 
 export interface ToolDownloadProgress {
@@ -168,6 +182,7 @@ export const api = {
   getSettings: () => invoke<AppSettings>("get_settings"),
   saveSettings: (settings: AppSettings) => invoke<void>("save_settings", { settings }),
   detectTools: () => invoke<ResolvedTools>("detect_tools"),
+  appInfo: () => invoke<AppInfo>("app_info"),
   downloadYtdlp: () => invoke<ToolInfo>("download_ytdlp"),
   fetchInfo: (url: string, flatPlaylist: boolean) =>
     invoke<YtInfo>("fetch_info", { url, flatPlaylist }),

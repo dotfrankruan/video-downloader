@@ -8,7 +8,7 @@
 //!      minimal PATH that does not include /opt/homebrew/bin etc.)
 
 use crate::settings::AppSettings;
-use crate::state::{ResolvedTools, ToolInfo};
+use crate::state::{ResolvedTools, ToolInfo, ToolResolution};
 use anyhow::{anyhow, Context};
 use futures_util::StreamExt;
 use std::path::{Path, PathBuf};
@@ -61,26 +61,47 @@ fn is_executable_file(p: &Path) -> bool {
 }
 
 fn version_of(bin: &Path) -> Option<String> {
-    let out = std::process::Command::new(bin)
-        .arg("--version")
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::null())
-        .output()
-        .ok()?;
-    if !out.status.success() {
-        return None;
+    // yt-dlp uses GNU-style "--version"; ffmpeg/ffprobe only accept the
+    // single-dash "-version" (their parser strips one dash and then fails
+    // on "--version" with exit code 8). Try both.
+    for flag in ["--version", "-version"] {
+        let out = std::process::Command::new(bin)
+            .arg(flag)
+            .stdout(std::process::Stdio::piped())
+            .stderr(std::process::Stdio::null())
+            .output();
+        let Ok(out) = out else { continue };
+        if !out.status.success() {
+            continue;
+        }
+        let first = String::from_utf8_lossy(&out.stdout)
+            .lines()
+            .next()
+            .unwrap_or("")
+            .trim()
+            .to_string();
+        if !first.is_empty() {
+            return Some(clean_version_line(&first));
+        }
     }
-    let first = String::from_utf8_lossy(&out.stdout)
-        .lines()
-        .next()
-        .unwrap_or("")
-        .trim()
-        .to_string();
-    if first.is_empty() {
-        None
-    } else {
-        Some(first)
+    None
+}
+
+/// Tidy up version banners for display: ffmpeg prints
+/// "ffmpeg version 9.0.2-https://www.martin-riedl.de ..." -> "9.0.2".
+fn clean_version_line(line: &str) -> String {
+    let tokens: Vec<&str> = line.split_whitespace().collect();
+    // "<tool> version <X>" pattern (ffmpeg, ffprobe)
+    if tokens.len() >= 3 && tokens[1] == "version" {
+        let v = tokens[2];
+        // Cut source-url suffixes like "9.0.2-https://..."
+        let v = match v.find("-http") {
+            Some(i) => &v[..i],
+            None => v,
+        };
+        return v.to_string();
     }
+    line.to_string()
 }
 
 fn probe(path: &Path, source: &str) -> Option<ToolInfo> {
@@ -207,42 +228,54 @@ fn appdata_bin_dir(app_data_dir: &Path) -> PathBuf {
 }
 
 /// Resolve one tool using the documented order. `custom` is the settings override.
-fn resolve_tool(
-    base: &str,
-    custom: &str,
-    app_data_dir: Option<&Path>,
-) -> Option<ToolInfo> {
+fn resolve_tool(base: &str, custom: &str, app_data_dir: Option<&Path>) -> ToolResolution {
+    let mut custom_invalid = false;
     // 1. custom override
     if !custom.trim().is_empty() {
         let p = PathBuf::from(custom.trim());
         // Allow pointing either at the binary itself or at a directory containing it.
         let candidate = if p.is_dir() { p.join(exe_name(base)) } else { p };
         if let Some(info) = probe(&candidate, "custom") {
-            return Some(info);
+            return ToolResolution { info: Some(info), custom_invalid: false };
         }
+        custom_invalid = true;
+        eprintln!("[tools] custom path for {base} not usable: {custom}");
     }
     // 2. bundled sidecar (full builds), materialized under its clean name
     if let Some(dir) = app_data_dir {
-        if let Some(p) = bundled_materialized(base, dir) {
-            if let Some(info) = probe(&p, "bundled") {
-                return Some(info);
-            }
+        match bundled_materialized(base, dir) {
+            Some(p) => match probe(&p, "bundled") {
+                Some(info) => return ToolResolution { info: Some(info), custom_invalid },
+                None => eprintln!("[tools] bundled {base} at {p:?} failed to execute"),
+            },
+            None => eprintln!("[tools] no bundled sidecar for {base}"),
         }
     }
     // 3. downloaded copy in app data dir
     if let Some(dir) = app_data_dir {
         let p = appdata_bin_dir(dir).join(exe_name(base));
         if let Some(info) = probe(&p, "appdata") {
-            return Some(info);
+            return ToolResolution { info: Some(info), custom_invalid };
         }
     }
     // 4. PATH + common dirs
     if let Some(p) = path_lookup(base) {
         if let Some(info) = probe(&p, "path") {
-            return Some(info);
+            return ToolResolution { info: Some(info), custom_invalid };
         }
     }
-    None
+    eprintln!("[tools] {base} not found anywhere");
+    ToolResolution { info: None, custom_invalid }
+}
+
+/// True when bundled sidecar binaries ship inside this build ("full" variant).
+pub fn has_bundled_tools() -> bool {
+    bundled_candidate(YTDLP).is_some()
+}
+
+/// Directory where runtime-downloaded tools are stored.
+pub fn tools_dir(app_data_dir: &Path) -> PathBuf {
+    appdata_bin_dir(app_data_dir)
 }
 
 pub fn resolve_all(settings: &AppSettings, app_data_dir: Option<&Path>) -> ResolvedTools {

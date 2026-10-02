@@ -78,6 +78,18 @@ The app is **ad-hoc signed only** (the dmg contains a bilingual
 # 依赖 / prerequisites: Rust (rustup), Node.js + pnpm, Xcode CLT (macOS)
 pnpm install
 
+# 本地快速迭代（推荐，无需等 CI）/ Fast local loop (no CI needed):
+make help        # 列出所有目标 / list targets
+make test        # cargo test + 前端测试 + svelte-check
+make dev         # 开发模式（热更新）/ dev mode with hot reload
+make dmg         # lite .app + dmg（含未签名告知文件）
+make dmg-full    # full .app + dmg（内置 yt-dlp/ffmpeg/ffprobe）
+make print-tools # 验证 full 版的工具检测 / verify tool detection
+```
+
+手工命令 / manual equivalent:
+
+```bash
 # 开发模式 / dev mode (hot reload)
 pnpm tauri dev
 

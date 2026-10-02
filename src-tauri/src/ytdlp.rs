@@ -194,8 +194,9 @@ pub fn start_download(
         let tools = state.tools.read().unwrap().clone();
         let ytdlp = tools
             .ytdlp
+            .info
             .ok_or_else(|| "yt-dlp is not available. Install it or download it from Settings.".to_string())?;
-        (settings, ytdlp, tools.ffmpeg)
+        (settings, ytdlp, tools.ffmpeg.info)
     };
 
     let args = build_download_args(&spec, &settings, ffmpeg.as_ref().map(|t| t.path.as_str()));

@@ -4,6 +4,13 @@ mod state;
 mod tools;
 mod ytdlp;
 
+pub use tools::resolve_all;
+
+/// Exposed for the --print-tools diagnostic entry point.
+pub fn default_settings() -> settings::AppSettings {
+    settings::AppSettings::default()
+}
+
 use settings::AppSettings;
 use state::{AppState, SharedState};
 use std::sync::{Arc, RwLock};
@@ -18,6 +25,30 @@ struct ToolDownloadProgress {
     total: Option<u64>,
     done: bool,
     error: Option<String>,
+}
+
+#[derive(Debug, Clone, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+struct AppInfo {
+    version: String,
+    /// "full" when yt-dlp/ffmpeg sidecars are bundled, otherwise "lite".
+    variant: String,
+    /// Directory where runtime-downloaded tools are stored.
+    tools_dir: String,
+}
+
+#[tauri::command]
+fn app_info(app: AppHandle) -> AppInfo {
+    let tools_dir = app
+        .path()
+        .app_data_dir()
+        .map(|d| tools::tools_dir(&d).to_string_lossy().to_string())
+        .unwrap_or_default();
+    AppInfo {
+        version: env!("CARGO_PKG_VERSION").to_string(),
+        variant: if tools::has_bundled_tools() { "full" } else { "lite" }.to_string(),
+        tools_dir,
+    }
 }
 
 #[tauri::command]
@@ -102,7 +133,7 @@ async fn fetch_info(
     let (settings, ytdlp) = {
         let s = state.settings.read().unwrap().clone();
         let t = state.tools.read().unwrap().clone();
-        (s, t.ytdlp)
+        (s, t.ytdlp.info)
     };
     let ytdlp = ytdlp
         .ok_or_else(|| "yt-dlp is not available. Install it or download it from Settings.".to_string())?;
@@ -157,6 +188,7 @@ pub fn run() {
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![
+            app_info,
             get_settings,
             save_settings,
             detect_tools,

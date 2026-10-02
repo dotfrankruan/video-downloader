@@ -1,5 +1,7 @@
 {
   "app.title": "Video Downloader",
+  "app.variant.full": "full (tools bundled)",
+  "app.variant.lite": "lite",
   "nav.newDownload": "New Download",
   "nav.queue": "Queue",
   "nav.settings": "Settings",
@@ -101,6 +103,9 @@
   "settings.tools.mirror": "Download mirror base URL",
   "settings.tools.mirrorHint": "Default https://github.com. If GitHub is unreachable, set a mirror that mirrors github.com paths, e.g. a gh-proxy.",
   "settings.tools.viaProxy": "Download via the configured proxy",
+  "settings.tools.customInvalid": "Custom path is set but the binary does not run — falling back to other sources. Clear the field or pick a valid binary.",
+  "settings.tools.bundledNote": "yt-dlp and ffmpeg are bundled in this build; no download needed.",
+  "settings.tools.downloadDest": "Downloaded tools are stored in: {path}",
   "settings.tools.ffmpegHint": "ffmpeg is needed for merging formats, extracting audio and embedding subtitles. Install via your package manager (e.g. brew install ffmpeg) or set a custom path. The \"full\" installer bundles it.",
   "settings.network": "Network",
   "settings.proxy": "Proxy",

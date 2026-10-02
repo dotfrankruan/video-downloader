@@ -40,7 +40,7 @@
 
   <div class="content">
     <div class="page">
-      {#if ready && !store.tools.ytdlp}
+      {#if ready && !store.tools.ytdlp.info}
         <div class="banner">
           <span class="grow">{t("banner.noYtdlp")}</span>
           <button onclick={() => (store.tab = "settings")}>{t("banner.goSettings")}</button>
@@ -55,5 +55,11 @@
         <Settings />
       {/if}
     </div>
+  </div>
+
+  <div class="footer">
+    <span class="muted">
+      v{store.appInfo.version} · {store.appInfo.variant === "full" ? t("app.variant.full") : t("app.variant.lite")}
+    </span>
   </div>
 </div>

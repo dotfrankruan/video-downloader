@@ -24,8 +24,18 @@ pub struct AppState {
 #[derive(Debug, Clone, Default, serde::Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ResolvedTools {
-    pub ytdlp: Option<ToolInfo>,
-    pub ffmpeg: Option<ToolInfo>,
+    pub ytdlp: ToolResolution,
+    pub ffmpeg: ToolResolution,
+}
+
+/// Resolution result for one tool.
+#[derive(Debug, Clone, Default, serde::Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct ToolResolution {
+    pub info: Option<ToolInfo>,
+    /// True when the user configured a custom path but it does not run —
+    /// shown as an explicit warning instead of silently falling back.
+    pub custom_invalid: bool,
 }
 
 #[derive(Debug, Clone, serde::Serialize)]

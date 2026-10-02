@@ -2,6 +2,7 @@ import {
   api,
   defaultSettings,
   onDownloadEvent,
+  type AppInfo,
   type AppSettings,
   type DownloadEvent,
   type DownloadSpec,
@@ -29,7 +30,11 @@ const MAX_LOG_LINES = 200;
 
 class AppStore {
   settings = $state<AppSettings>({ ...defaultSettings });
-  tools = $state<ResolvedTools>({ ytdlp: null, ffmpeg: null });
+  tools = $state<ResolvedTools>({
+    ytdlp: { info: null, customInvalid: false },
+    ffmpeg: { info: null, customInvalid: false },
+  });
+  appInfo = $state<AppInfo>({ version: "", variant: "lite", toolsDir: "" });
   tasks = $state<Task[]>([]);
   tab = $state<"new" | "queue" | "settings">("new");
   settingsSavedFlash = $state(false);
@@ -46,6 +51,11 @@ class AppStore {
       /* keep defaults */
     }
     applyLanguageSetting(this.settings.language);
+    try {
+      this.appInfo = await api.appInfo();
+    } catch {
+      /* keep defaults */
+    }
     await this.refreshTools();
     await onDownloadEvent((ev) => this.handleEvent(ev));
   }
