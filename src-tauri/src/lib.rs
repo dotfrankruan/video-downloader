@@ -109,8 +109,13 @@ async fn fetch_info(
     ytdlp::fetch_info(&ytdlp.path, &url, flat_playlist, &settings).await
 }
 
+/// Spawns yt-dlp via tokio::process. MUST stay `async`: sync Tauri commands
+/// run on the main thread inside an FFI callback, where there is no tokio
+/// runtime context — tokio's Command::spawn then panics in Handle::current
+/// and the unwind across the FFI boundary aborts the whole app.
+/// (Crash report: start_download -> tokio build_child -> Handle::current.)
 #[tauri::command]
-fn start_download(
+async fn start_download(
     app: AppHandle,
     state: tauri::State<'_, SharedState>,
     id: String,
